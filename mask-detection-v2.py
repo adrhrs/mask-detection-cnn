@@ -1,4 +1,4 @@
-from keras.models import load_model
+# from keras.models import load_model
 import cv2
 import numpy as np
 import time
@@ -9,31 +9,40 @@ import datetime
 import mediapipe as mp
 import numpy as np
 
-model = load_model('./mask_detection_model_v2/model-017.model')
+# model = load_model('./mask_detection_model_v2/model-017.model')
 
-labels_dict={0:'MASK',1:'NO MASK'}
-color_dict={0:(0,255,0),1:(0,0,255)}
+labelsDict={0:'MASK',1:'NO MASK'}
+colorDict={0:(0,255,0),1:(0,0,255)}
 
-
-start_time_all = datetime.datetime.now()
+startTimeAll = datetime.datetime.now()
 cam = cv2.VideoCapture(1)
-
 
 mpFaceDetector = mp.solutions.face_detection
 mpDraw = mp.solutions.drawing_utils
 mpFaceMesh = mp.solutions.face_mesh
 faceMesh = mpFaceMesh.FaceMesh(False, 1, 0.4, 0.5)
 drawSpec = mpDraw.DrawingSpec(thickness=1, circle_radius=1)
+
+count = 0
+limiter = 20
+limStart = datetime.datetime.now()
+
 while True:
+    start = time.time()
     success, img = cam.read()
     img = cv2.flip(img, 1)
     imgRGB = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    results = faceMesh.process(imgRGB)
+    
     fh, fw, fc = img.shape
     xCenterPoint = (int(fw/2))
     yCenterPoint = (int(fh/2))
-    results = faceMesh.process(imgRGB)
+    
     faceId = 1
-    start = time.time()
+    
+    angleOCX = 0
+    angleOCY = 0
+
     if results.multi_face_landmarks:
         for faceLms in results.multi_face_landmarks:
             xCoord = []
@@ -55,17 +64,19 @@ while True:
             xmax = max(xCoord)
             ymax = max(yCoord)
 
-            faceImg = img[ymin:ymax,xmin:xmax]
-            faceImggray=cv2.cvtColor(faceImg,cv2.COLOR_BGR2GRAY)
-            resized=cv2.resize(faceImggray,(100,100))
-            normalized=resized/255.0
-            reshaped=np.reshape(normalized,(1,100,100,1))
-            result=model.predict(reshaped)
-            label=np.argmax(result,axis=1)[0]
+            # faceImg = img[ymin:ymax,xmin:xmax]
+            # faceImggray=cv2.cvtColor(faceImg,cv2.COLOR_BGR2GRAY)
+            # resized=cv2.resize(faceImggray,(100,100))
+            # normalized=resized/255.0
+            # reshaped=np.reshape(normalized,(1,100,100,1))
+            # result=model.predict(reshaped)
+            # label=np.argmax(result,axis=1)[0]
 
-            cv2.rectangle(img, (xmin, ymin), (xmax, ymax), color_dict[label], 2)
-            cv2.putText(img, f'{labels_dict[label]}', (xmin, ymax+20), 
-                cv2.FONT_HERSHEY_SIMPLEX, 0.3, color_dict[label], 1)
+            label = 1
+
+            cv2.rectangle(img, (xmin, ymin), (xmax, ymax), colorDict[label], 2)
+            cv2.putText(img, f'{labelsDict[label]}', (xmin, ymax+20), 
+                cv2.FONT_HERSHEY_SIMPLEX, 0.3, colorDict[label], 1)
 
             if label == 1:
                 w = 14
@@ -137,19 +148,27 @@ while True:
 
     end = time.time()
     totalTime = end -start
-    if totalTime > 0:
-        fps = 1 / totalTime
-        print("FPS: ", fps)
+    if totalTime > 0 and count%limiter == 0 and count > 0:
 
+        # limEndTime = datetime.datetime.now()
+        # limTimeDiff = (limEndTime - limStart)
+        # limDur = limTimeDiff.total_seconds()
+        
+        fps = 1 / totalTime
+        print(angleOCX, angleOCY)
+       
+        limStart = time.time()
+
+    count += 1
     cv2.imshow("all", img)
     k = cv2.waitKey(1) & 0xff
     if k==27:
         break
 
-end_time_all = datetime.datetime.now()
-time_diff_all = (end_time_all - start_time_all)
-execution_time = time_diff_all.total_seconds()
-print(execution_time)
+endTimeAll = datetime.datetime.now()
+timeDiffAll = (endTimeAll - startTimeAll)
+exec = timeDiffAll.total_seconds()
+print(exec)
 cam.release()
 
 
