@@ -8,8 +8,22 @@ import time
 import datetime
 import mediapipe as mp
 import numpy as np
+from pyfirmata import Arduino, SERVO, util
+import time
 
 # model = load_model('./mask_detection_model_v2/model-017.model')
+
+port = "COM3"
+board = Arduino(port)
+
+it = util.Iterator(board)
+it.start()
+
+servo9 = board.get_pin('d:9:s')
+servo8 = board.get_pin('d:8:s')
+
+servo9.write(90)
+servo8.write(90)
 
 labelsDict={0:'MASK',1:'NO MASK'}
 colorDict={0:(0,255,0),1:(0,0,255)}
@@ -24,7 +38,7 @@ faceMesh = mpFaceMesh.FaceMesh(False, 1, 0.4, 0.5)
 drawSpec = mpDraw.DrawingSpec(thickness=1, circle_radius=1)
 
 count = 0
-limiter = 20
+limiter = 10
 limStart = datetime.datetime.now()
 
 while True:
@@ -155,7 +169,23 @@ while True:
         # limDur = limTimeDiff.total_seconds()
         
         fps = 1 / totalTime
+        
+
+        angleOCY = angleOCY*6
+        angleOCX = angleOCX*6
+
+        if abs(angleOCX) > 90:
+            angleOCX = 90
+        
+        if abs(angleOCY) > 90:
+            angleOCY = 90
+
         print(angleOCX, angleOCY)
+
+        pan = angleOCX+90
+        tilt = angleOCY+90
+        servo9.write(tilt)
+        servo8.write(pan)
        
         limStart = time.time()
 
